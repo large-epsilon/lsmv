@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+import "proto/objects.proto";
+
+message StoreObjectRequest {
+    oneof to_store {
+        Tree tree = 1;
+        Commit commit = 2;
+        Blob blob = 3;
+    }
+}
+
+message StoreObjectResponse {}
+
+message BatchedStoreObjectRequest {
+    repeated StoreObjectRequest objects = 1;
+}
+
+message BatchedStoreObjectResponse {}
+
+message GetObjectRequest {
+    string hash = 1;
+}
+
+message GetObjectResponse {
+    oneof returned_object {
+        Tree tree = 1;
+        Commit commit = 2;
+        Blob blob = 3;
+    }
+}
+
+message BatchedGetObjectRequest {
+    repeated GetObjectRequest requests = 1;
+}
+
+message BatchedGetObjectResponse {
+    repeated GetObjectResponse reponses = 1;
+}
+
+service ObjectStore {
+    rpc StoreObject(StoreObjectRequest) returns (StoreObjectResponse);
+    rpc BatchedStoreObject(BatchedStoreObjectRequest) returns (BatchedStoreObjectResponse);
+    rpc GetObject(GetObjectRequest) returns (GetObjectResponse);
+    rpc BatchedGetObject(BatchedGetObjectRequest) returns (BatchedGetObjectResponse);
+}
