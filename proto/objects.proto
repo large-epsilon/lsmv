@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "lsmv/proto/objects";
+option go_package = "lsmv/proto/objectstore";
 
 // Stores the exact contents of one file.
 message Blob {
