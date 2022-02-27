@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+option go_package = "lsmv/proto/objects";
+
 // Stores the exact contents of one file.
 message Blob {
     // Unique identifying sha256 hash of this blob.
