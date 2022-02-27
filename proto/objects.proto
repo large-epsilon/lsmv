@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+// Stores the exact contents of one file.
+message Blob {
+    // Unique identifying sha256 hash of this blob.
+    string hash = 1;
+
+    // Content of this blob. Max size in proto3 is 2**32, which is therefore the max file size this VC will support. (~.4G)
+    bytes content = 100;
+}
+
+// A commit representing a snapshot of the repo at a single moment in time.
+message Commit {
+    // Time this change was commited. UTC.
+    uint64 timestamp = 1;
+
+    // Unique identifying sha256 hash of this commit.
+    string hash = 2;
+
+    // Sha256 hash of the associated Tree object for this commit.
+    string tree = 3;
+
+    // Common name of the author of this commit.
+    string author = 100;
+
+    // Email address of the author.
+    string authorEmail = 101;
+
+    // Common name of the committer.
+    string committer = 102;
+
+    // Email address of the committer.
+    string committerEmail = 103;
+
+    // Human-readable text diff of changes in this commit.
+    string diff = 204;
+}
+
+// Represents the structure of the repo (or a portion of it) at one point in time.
+message Tree {
+    // Unique identifying sha256 hash of this tree.
+    string hash = 1;
+
+    // If this is a subtree, this is the hash of the parent tree. Empty if this is a root tree.
+    string parentHash = 2;
+
+    // Maps the full path of the file to the hash of either the blob with its contents or a subtree.
+    map<string, string> nodes = 3;
+}
