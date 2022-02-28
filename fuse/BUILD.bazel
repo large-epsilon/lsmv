@@ -6,9 +6,9 @@ go_library(
     importpath = "lsmv/fuse",
     visibility = ["//visibility:private"],
     deps = [
+        "//proto:objectstore",
         "@org_bazil_fuse//:fuse",
         "@org_bazil_fuse//fs",
-        "@org_bazil_fuse//fs/fstestutil",
     ],
 )
 
