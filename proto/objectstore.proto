@@ -37,7 +37,7 @@ message BatchedGetObjectRequest {
 }
 
 message BatchedGetObjectResponse {
-    repeated GetObjectResponse reponses = 1;
+    repeated GetObjectResponse responses = 1;
 }
 
 service ObjectStore {
