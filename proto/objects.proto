@@ -47,5 +47,15 @@ message Tree {
     string parentHash = 2;
 
     // Maps the full path of the file to the hash of either the blob with its contents or a subtree.
-    map<string, string> nodes = 3;
+    message Child {
+        enum NodeType {
+            UNDEFINED = 0;
+            BLOB = 1;
+            SUBTREE = 2;
+        }
+        string hash = 1;
+        string name = 2;
+        NodeType type = 3;
+    }
+    repeated Child children = 3;
 }
