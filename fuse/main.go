@@ -5,6 +5,7 @@ import (
     "flag"
     iofs "io/fs"
     "log"
+    "os"
     "syscall"
 
     "bazil.org/fuse"
@@ -24,30 +25,42 @@ func (fs LsmvFS) setRootTree(tree *objectstore_pb.Tree) error {
 }
 
 func (LsmvFS) Root() (fs.Node, error) {
-    return Dir{}, nil
+    root_dir := Dir {
+        inode: 1,
+        mode: os.ModeDir | 0o555,
+        files: &map[string]File{},
+        children: &map[string]Dir{},
+    }
+    content := []byte("Hello you beautiful person!\n")
+    (*root_dir.files)["hello"] = File{
+        content: &content,
+        inode: 2,
+        mode: 0o444,
+    }
+
+    return root_dir, nil
 }
 
 type Dir struct {
-    files map[string]File
-    children map[string]Dir
+    // Map pointers are used here to make the dir struct hashable.
+    files *map[string]File
+    children *map[string]Dir
     inode uint64
     mode iofs.FileMode
 }
 
 func (d Dir) Attr(ctx context.Context, attr *fuse.Attr) error {
-    //attr.Inode = 1
-    //attr.Mode = os.ModeDir | 0o555
     attr.Inode = d.inode
     attr.Mode = d.mode
     return nil
 }
 
 func (d Dir) Lookup(ctx context.Context, name string) (fs.Node, error) {
-    child, ok := d.children[name]
+    child, ok := (*d.children)[name]
     if ok {
         return child, nil
     }
-    file, ok := d.files[name]
+    file, ok := (*d.files)[name]
     if ok {
         return file, nil
     }
@@ -57,10 +70,10 @@ func (d Dir) Lookup(ctx context.Context, name string) (fs.Node, error) {
 func (d Dir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
     // TODO: handle lazy-loading subtrees
     response := []fuse.Dirent{}
-    for name, child := range d.children {
+    for name, child := range *d.children {
         response = append(response, fuse.Dirent{Inode: child.inode, Name: name, Type: fuse.DT_Dir})
     }
-    for name, file := range d.files {
+    for name, file := range *d.files {
         response = append(response, fuse.Dirent{Inode: file.inode, Name: name, Type: fuse.DT_File})
     }
     return response, nil
@@ -68,23 +81,21 @@ func (d Dir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 
 type File struct {
     // TODO: don't hold everything in memory, cache to disk.
-    content []byte
+    // Pointer to slice used here to make File struct hashable.
+    content *[]byte
     inode uint64
     mode iofs.FileMode
 }
 
 func (f File) Attr(ctx context.Context, attr *fuse.Attr) error {
-    // attr.Inode = 2
-    // attr.Mode = 0o444
-    // attr.Size = uint64(len(content))
     attr.Inode = f.inode
     attr.Mode = f.mode
-    attr.Size = uint64(len(f.content))
+    attr.Size = uint64(len(*f.content))
     return nil
 }
 
 func (f File) ReadAll(ctx context.Context) ([]byte, error) {
-    return f.content, nil
+    return *f.content, nil
 }
 
 func main() {
