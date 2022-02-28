@@ -1,4 +1,5 @@
 bazel-out
 bazel-bin
 bazel-lsmv
+bazel-lsmv-buildable
 bazel-testlogs
