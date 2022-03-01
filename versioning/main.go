@@ -75,12 +75,66 @@ func (v *VersioningServerImpl) PullCommit(
 	ctx context.Context,
 	request *pb.PullCommitRequest,
 ) (*pb.PullCommitResponse, error) {
-	return nil, nil
+	response := &pb.PullCommitResponse{}
+
+	conn, err := grpc.Dial(v.objectstoreAddress)
+	if err != nil {
+		log.Printf(
+			"Failed to dial objectstore server at %s: %v",
+			v.objectstoreAddress, err)
+		return nil, err
+	}
+	defer conn.Close()
+
+	objectstoreClient := objectstore_pb.NewObjectStoreClient(conn)
+
+	getObjectResponse, err := objectstoreClient.GetObject(
+		ctx, &objectstore_pb.GetObjectRequest{Hash: request.Hash})
+	if err != nil {
+		log.Printf("Failed to get commit from objectstore: %v", err)
+		return nil, err
+	}
+
+	switch x := getObjectResponse.ReturnedObject.(type) {
+	case *objectstore_pb.GetObjectResponse_Commit:
+		response.Commit = x.Commit
+	default:
+		return nil, fmt.Errorf(
+			"incorrect type for object '%s': %T, expected commit",
+			request.Hash, getObjectResponse.ReturnedObject)
+	}
+
+	getObjectResponse, err = objectstoreClient.GetObject(
+		ctx, &objectstore_pb.GetObjectRequest{Hash: response.Commit.Tree})
+	if err != nil {
+		log.Printf("Failed to get tree from objectstore: %v", err)
+		return nil, err
+	}
+
+	switch x := getObjectResponse.ReturnedObject.(type) {
+	case *objectstore_pb.GetObjectResponse_Tree:
+		response.Root = x.Tree
+	default:
+		return nil, fmt.Errorf(
+			"incorrect type for object '%s': %T, expected tree",
+			request.Hash, getObjectResponse.ReturnedObject)
+	}
+
+	return response, nil
 }
 
 func main() {
-	var port = flag.Int("port", 7886, "Port for the objectstore server to listen on.")
+	var port = flag.Int(
+		"port",
+		7886,
+		"Port for the objectstore server to listen on.",
+	)
 	var host = flag.String("host", "localhost", "Hostname for this server.")
+	var objectstoreAddress = flag.String(
+		"objectstore_address",
+		"localhost:7887",
+		"host:port address of the objectstore service to use.",
+	)
 
 	flag.Parse()
 
@@ -91,7 +145,9 @@ func main() {
 
 	var opts []grpc.ServerOption
 	grpcServer := grpc.NewServer(opts...)
-	pb.RegisterVersioningServer(grpcServer, &VersioningServerImpl{})
+	pb.RegisterVersioningServer(grpcServer, &VersioningServerImpl{
+		objectstoreAddress: *objectstoreAddress,
+	})
 	log.Printf("Starting versioning server on %s:%d.", *host, *port)
 	err = grpcServer.Serve(lis)
 	if err != nil {

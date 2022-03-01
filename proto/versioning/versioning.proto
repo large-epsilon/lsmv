@@ -4,12 +4,6 @@ option go_package = "lsmv/proto/versioning";
 
 import "proto/data/objects.proto";
 
-// very todo, this is not a finalized api but more of a napkin diagram for testing
-
-message GetHistoryResponse {
-    repeated Commit commits = 1;
-}
-
 message PushCommitRequest {
     Tree root = 1;
     Commit commit = 2;
@@ -26,8 +20,6 @@ message PullCommitRequest {
 message PullCommitResponse {
     Tree root = 1;
     Commit commit = 2;
-    repeated Tree subtrees = 3;
-    repeated Blob files = 4;
 }
 
 service versioning {
