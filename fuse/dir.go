@@ -16,13 +16,14 @@ import (
 
 type Dir struct {
 	// Map pointers are used here to make the dir struct hashable.
-	files    *map[string]File
-	children *map[string]Dir
-	hash     string
-	inode    uint64
-	mode     iofs.FileMode
-	tree     *data_pb.Tree
-	loaded   bool
+	files      *map[string]File
+	children   *map[string]Dir
+	hash       string
+	inode      uint64
+	mode       iofs.FileMode
+	tree       *data_pb.Tree
+	loaded     bool
+	controller *Controller
 }
 
 func (d Dir) maybeLoad() error {
@@ -30,37 +31,30 @@ func (d Dir) maybeLoad() error {
 		return nil
 	}
 
-	// TODO: Fetch the real tree from objectstore
-	// Following is dummy data for testing
-	if d.inode != 3 {
-		return nil
+	tree, err := d.controller.getDir(d.hash)
+	if err != nil {
+		return err
 	}
-	d.tree = &data_pb.Tree{
-		Hash: "faketree",
-		Children: []*data_pb.Tree_Child{
-			{Hash: "fakefil123", Name: "fakefile", Type: data_pb.Tree_Child_BLOB},
-			{Hash: "fakefil125", Name: "anotherfile", Type: data_pb.Tree_Child_BLOB},
-			{Hash: "asdfasfd", Name: "banana", Type: data_pb.Tree_Child_BLOB},
-		},
-	}
-	// END DUMMY DATA
+	d.tree = tree
 
 	for _, child := range d.tree.Children {
 		switch child.Type {
 		case data_pb.Tree_Child_BLOB:
 			(*d.files)[child.Name] = File{
-				content: &[]byte{},
-				hash:    child.Hash,
-				inode:   uint64(rand.Int63()),
-				mode:    0o444, // TODO store modes in tree protos
+				content:    &[]byte{},
+				hash:       child.Hash,
+				inode:      uint64(rand.Int63()),
+				mode:       0o444, // TODO store modes in tree protos
+				controller: d.controller,
 			}
 		case data_pb.Tree_Child_SUBTREE:
 			(*d.children)[child.Name] = Dir{
-				files:    &map[string]File{},
-				children: &map[string]Dir{},
-				hash:     child.Hash,
-				inode:    uint64(rand.Int63()),
-				mode:     os.ModeDir | 0o555, // TODO store modes in tree protos
+				files:      &map[string]File{},
+				children:   &map[string]Dir{},
+				hash:       child.Hash,
+				inode:      uint64(rand.Int63()),
+				mode:       os.ModeDir | 0o555, // TODO store modes in tree protos
+				controller: d.controller,
 			}
 		}
 	}

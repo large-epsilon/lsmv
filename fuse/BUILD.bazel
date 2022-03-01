@@ -13,6 +13,7 @@ go_library(
     visibility = ["//visibility:private"],
     deps = [
         "//proto/data",
+        "//proto/objectstore",
         "//proto/versioning",
         "@org_bazil_fuse//:fuse",
         "@org_bazil_fuse//fs",

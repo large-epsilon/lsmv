@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"syscall"
@@ -10,6 +11,8 @@ import (
 	"bazil.org/fuse/fs"
 	"google.golang.org/grpc"
 
+	data_pb "lsmv/proto/data"
+	objectstore_pb "lsmv/proto/objectstore"
 	versioning_pb "lsmv/proto/versioning"
 )
 
@@ -47,13 +50,14 @@ type LsmvFS struct {
 	repoName string
 }
 
-func (fs *LsmvFS) setRootTree(hash string) error {
+func (fs *LsmvFS) setRootTree(hash string, controller *Controller) error {
 	fs.repoRoot = &Dir{
-		inode:    3,
-		hash:     hash,
-		mode:     os.ModeDir | 0o555,
-		files:    &map[string]File{},
-		children: &map[string]Dir{},
+		inode:      3,
+		hash:       hash,
+		mode:       os.ModeDir | 0o555,
+		files:      &map[string]File{},
+		children:   &map[string]Dir{},
+		controller: controller,
 	}
 	return nil
 }
@@ -68,13 +72,66 @@ func (fs LsmvFS) Root() (fs.Node, error) {
 
 // TODO: swap this to disk somewhere
 type Controller struct {
-	versioningServerAddress string
-	filesystem              *LsmvFS
-	currentHead             string
+	versioningServerAddress  string
+	objectstoreServerAddress string
+	filesystem               *LsmvFS
+	currentHead              string
+}
+
+func (c *Controller) getFile(hash string) (*data_pb.Blob, error) {
+	conn, err := grpc.Dial(c.objectstoreServerAddress, grpc.WithInsecure())
+	if err != nil {
+		log.Printf(
+			"Failed to dial objectstore server at %s: %v",
+			c.objectstoreServerAddress, err)
+		return nil, err
+	}
+
+	objectstoreClient := objectstore_pb.NewObjectStoreClient(conn)
+	response, err := objectstoreClient.GetObject(
+		context.TODO(), &objectstore_pb.GetObjectRequest{Hash: hash})
+	if err != nil {
+		return nil, err
+	}
+
+	switch x := response.ReturnedObject.(type) {
+	case *objectstore_pb.GetObjectResponse_Blob:
+		return x.Blob, nil
+	default:
+		return nil, fmt.Errorf(
+			"incorrect type for object '%s': %T, expected blob",
+			hash, response.ReturnedObject)
+	}
+}
+
+func (c *Controller) getDir(hash string) (*data_pb.Tree, error) {
+	conn, err := grpc.Dial(c.objectstoreServerAddress, grpc.WithInsecure())
+	if err != nil {
+		log.Printf(
+			"Failed to dial objectstore server at %s: %v",
+			c.objectstoreServerAddress, err)
+		return nil, err
+	}
+
+	objectstoreClient := objectstore_pb.NewObjectStoreClient(conn)
+	response, err := objectstoreClient.GetObject(
+		context.TODO(), &objectstore_pb.GetObjectRequest{Hash: hash})
+	if err != nil {
+		return nil, err
+	}
+
+	switch x := response.ReturnedObject.(type) {
+	case *objectstore_pb.GetObjectResponse_Tree:
+		return x.Tree, nil
+	default:
+		return nil, fmt.Errorf(
+			"incorrect type for object '%s': %T, expected tree",
+			hash, response.ReturnedObject)
+	}
 }
 
 func (c *Controller) setHead(hash string) error {
-	conn, err := grpc.Dial(c.versioningServerAddress)
+	conn, err := grpc.Dial(c.versioningServerAddress, grpc.WithInsecure())
 	if err != nil {
 		log.Printf(
 			"Failed to dial versioning server at %s: %v",
@@ -93,7 +150,7 @@ func (c *Controller) setHead(hash string) error {
 		return err
 	}
 
-	err = c.filesystem.setRootTree(response.Root.Hash)
+	err = c.filesystem.setRootTree(response.Root.Hash, c)
 	if err != nil {
 		log.Printf("Failed to set root tree: %v", err)
 		return err

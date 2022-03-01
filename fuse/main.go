@@ -24,7 +24,7 @@ func main() {
 		currentHead:             "asdffdsa",
 		versioningServerAddress: "localhost:7886",
 	}
-	err := filesystem.setRootTree(controller.currentHead)
+	err := filesystem.setRootTree(controller.currentHead, &controller)
 	if err != nil {
 		log.Fatalf("Failed to initialize filesystem: %v", err)
 	}

@@ -6,31 +6,29 @@ import (
 	"log"
 
 	"bazil.org/fuse"
-
-	data_pb "lsmv/proto/data"
 )
 
 type File struct {
 	// TODO: don't hold contents in memory, cache to disk.
 	// Pointer to slice is used here to make the File struct hashable.
-	content *[]byte
-	inode   uint64
-	mode    iofs.FileMode
-	hash    string
-	loaded  bool
+	content    *[]byte
+	inode      uint64
+	mode       iofs.FileMode
+	hash       string
+	loaded     bool
+	controller *Controller
 }
 
 func (f File) maybeLoad() error {
-	// TODO: load contents from objectstore
-	// DUMMY DATA
 	if f.loaded {
 		return nil
 	}
-	blob := data_pb.Blob{
-		Hash:    f.hash,
-		Content: []byte{'a', 's', 'd', 'f', '\n'},
+
+	blob, err := f.controller.getFile(f.hash)
+	if err != nil {
+		return err
 	}
-	// END DUMMY DATA
+
 	*f.content = blob.Content
 	f.loaded = true
 	return nil
