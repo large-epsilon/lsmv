@@ -3,34 +3,10 @@ package main
 import (
 	"flag"
 	"log"
-	"os"
 
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
-
-	data_pb "lsmv/proto/data"
 )
-
-type LsmvFS struct {
-	tree *data_pb.Tree
-	root *Dir
-}
-
-func (fs LsmvFS) setRootTree(tree *data_pb.Tree) error {
-	// TODO
-	return nil
-}
-
-func (LsmvFS) Root() (fs.Node, error) {
-	// TODO: load the root tree instead of using a special inode
-	root_dir := Dir{
-		inode:    1,
-		mode:     os.ModeDir | 0o555,
-		files:    &map[string]File{},
-		children: &map[string]Dir{},
-	}
-	return root_dir, nil
-}
 
 func main() {
 	flag.Parse()
@@ -39,13 +15,28 @@ func main() {
 	}
 	mountLocation := flag.Arg(0)
 
-	conn, err := fuse.Mount(mountLocation, fuse.FSName("helloworld"), fuse.Subtype("hellofs"))
+	// TODO: smarter controller construction
+	filesystem := LsmvFS{}
+	controller := Controller{
+		filesystem:              &filesystem,
+		currentHead:             "asdffdsa",
+		versioningServerAddress: "localhost:7886",
+	}
+	control, err := constructControlDir(&controller)
+	if err != nil {
+		log.Fatalf("Failed to construct control directory: %v", err)
+	}
+	filesystem.control = &control
+
+	// TODO: defer unmount
+	conn, err := fuse.Mount(
+		mountLocation, fuse.FSName("lsmv"), fuse.Subtype("lsmvfs"))
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer conn.Close()
 
-	err = fs.Serve(conn, LsmvFS{})
+	err = fs.Serve(conn, filesystem)
 	if err != nil {
 		log.Fatal(err)
 	}

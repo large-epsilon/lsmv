@@ -3,6 +3,8 @@ load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 go_library(
     name = "fuse_lib",
     srcs = [
+        "controlfs.go",
+        "controller.go",
         "dir.go",
         "file.go",
         "main.go",
@@ -11,8 +13,10 @@ go_library(
     visibility = ["//visibility:private"],
     deps = [
         "//proto/data",
+        "//proto/versioning",
         "@org_bazil_fuse//:fuse",
         "@org_bazil_fuse//fs",
+        "@org_golang_google_grpc//:go_default_library",
     ],
 )
 

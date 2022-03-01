@@ -32,7 +32,7 @@ func (d Dir) maybeLoad() error {
 
 	// TODO: Fetch the real tree from objectstore
 	// Following is dummy data for testing
-	if d.inode != 1 {
+	if d.inode != 3 {
 		return nil
 	}
 	d.tree = &data_pb.Tree{
