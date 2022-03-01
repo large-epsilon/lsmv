@@ -74,7 +74,7 @@ func main() {
 
 	flag.Parse()
 
-	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%d", *port, *host))
+	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%d", *host, *port))
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
@@ -83,6 +83,6 @@ func main() {
 
 	grpcServer := grpc.NewServer(opts...)
 	pb.RegisterObjectStoreServer(grpcServer, &InMemoryObjectStoreServer{})
-	log.Printf("Starting object store server on %s:%d.", *port, *host)
+	log.Printf("Starting object store server on %s:%d.", *host, *port)
 	grpcServer.Serve(lis)
 }

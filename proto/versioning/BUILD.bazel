@@ -6,6 +6,7 @@ proto_library(
     name = "versioning_proto",
     srcs = ["versioning.proto"],
     visibility = ["//visibility:public"],
+    deps = ["//proto/data:data_proto"],
 )
 
 go_proto_library(
@@ -14,6 +15,7 @@ go_proto_library(
     importpath = "lsmv/proto/versioning",
     proto = ":versioning_proto",
     visibility = ["//visibility:public"],
+    deps = ["//proto/data"],
 )
 
 go_library(

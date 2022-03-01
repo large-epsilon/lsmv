@@ -1,8 +1,8 @@
-syntax = "proto3"
+syntax = "proto3";
 
-option go_module_path = "lsmv/proto/versioning"
+option go_package = "lsmv/proto/versioning";
 
-import "proto/data/objects.proto"
+import "proto/data/objects.proto";
 
 // very todo, this is not a finalized api but more of a napkin diagram for testing
 
