@@ -9,22 +9,72 @@ import (
 
 	"google.golang.org/grpc"
 
+	objectstore_pb "lsmv/proto/objectstore"
 	pb "lsmv/proto/versioning"
 )
 
-type DummyVersioningServer struct{}
-
-func (d *DummyVersioningServer) GetHistory(
-	ctx context.Context,
-	request *pb.GetHistoryRequest,
-) (*pb.GetHistoryResponse, error) {
-	return nil, nil
+type VersioningServerImpl struct {
+	objectstoreAddress string
 }
 
-func (d *DummyVersioningServer) Commit(
+func (v *VersioningServerImpl) PushCommit(
 	ctx context.Context,
-	request *pb.CommitRequest,
-) (*pb.CommitResponse, error) {
+	request *pb.PushCommitRequest,
+) (*pb.PushCommitResponse, error) {
+	storeRequest := objectstore_pb.BatchedStoreObjectRequest{}
+	storeRequest.Objects = append(
+		storeRequest.Objects,
+		&objectstore_pb.StoreObjectRequest{
+			ToStore: &objectstore_pb.StoreObjectRequest_Tree{request.Root},
+		},
+	)
+	storeRequest.Objects = append(
+		storeRequest.Objects,
+		&objectstore_pb.StoreObjectRequest{
+			ToStore: &objectstore_pb.StoreObjectRequest_Commit{request.Commit},
+		},
+	)
+	for _, tree := range request.Subtrees {
+		storeRequest.Objects = append(
+			storeRequest.Objects,
+			&objectstore_pb.StoreObjectRequest{
+				ToStore: &objectstore_pb.StoreObjectRequest_Tree{tree},
+			},
+		)
+	}
+	for _, blob := range request.Files {
+		storeRequest.Objects = append(
+			storeRequest.Objects,
+			&objectstore_pb.StoreObjectRequest{
+				ToStore: &objectstore_pb.StoreObjectRequest_Blob{blob},
+			},
+		)
+	}
+
+	conn, err := grpc.Dial(v.objectstoreAddress)
+	if err != nil {
+		log.Printf(
+			"Failed to dial objectstore server at %s: %v",
+			v.objectstoreAddress, err)
+		return nil, err
+	}
+	defer conn.Close()
+
+	objectstoreClient := objectstore_pb.NewObjectStoreClient(conn)
+
+	_, err = objectstoreClient.BatchedStoreObject(ctx, &storeRequest)
+	if err != nil {
+		log.Printf("Failed to store commit objects: %v", err)
+		return nil, err
+	}
+
+	return &pb.PushCommitResponse{}, nil
+}
+
+func (v *VersioningServerImpl) PullCommit(
+	ctx context.Context,
+	request *pb.PullCommitRequest,
+) (*pb.PullCommitResponse, error) {
 	return nil, nil
 }
 
@@ -40,9 +90,8 @@ func main() {
 	}
 
 	var opts []grpc.ServerOption
-
 	grpcServer := grpc.NewServer(opts...)
-	pb.RegisterVersioningServer(grpcServer, &DummyVersioningServer{})
+	pb.RegisterVersioningServer(grpcServer, &VersioningServerImpl{})
 	log.Printf("Starting versioning server on %s:%d.", *host, *port)
 	err = grpcServer.Serve(lis)
 	if err != nil {

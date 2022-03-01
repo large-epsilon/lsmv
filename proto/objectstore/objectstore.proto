@@ -4,6 +4,27 @@ option go_package = "lsmv/proto/objectstore";
 
 import "proto/data/objects.proto";
 
+// ************************************************************************** //
+// Object Store service
+//
+// This simple service stores our three object types: trees, commits, and blobs.
+// To add support for a storage backend, all you have to do is implement this
+// service and point the versioning service at it.
+// ************************************************************************** //
+service ObjectStore {
+    // Store a single object.
+    rpc StoreObject(StoreObjectRequest) returns (StoreObjectResponse);
+
+    // Store multiple objects.
+    rpc BatchedStoreObject(BatchedStoreObjectRequest) returns (BatchedStoreObjectResponse);
+
+    // Read a single object.
+    rpc GetObject(GetObjectRequest) returns (GetObjectResponse);
+
+    // Read multiple objects.
+    rpc BatchedGetObject(BatchedGetObjectRequest) returns (BatchedGetObjectResponse);
+}
+
 message StoreObjectRequest {
     oneof to_store {
         Tree tree = 1;
@@ -38,11 +59,4 @@ message BatchedGetObjectRequest {
 
 message BatchedGetObjectResponse {
     repeated GetObjectResponse responses = 1;
-}
-
-service ObjectStore {
-    rpc StoreObject(StoreObjectRequest) returns (StoreObjectResponse);
-    rpc BatchedStoreObject(BatchedStoreObjectRequest) returns (BatchedStoreObjectResponse);
-    rpc GetObject(GetObjectRequest) returns (GetObjectResponse);
-    rpc BatchedGetObject(BatchedGetObjectRequest) returns (BatchedGetObjectResponse);
 }
