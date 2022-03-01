@@ -9,13 +9,14 @@ import (
 
 	"google.golang.org/grpc"
 
+	data_pb "lsmv/proto/data"
 	pb "lsmv/proto/objectstore"
 )
 
 type InMemoryObjectStoreServer struct {
-	blobs   map[string]*pb.Blob
-	trees   map[string]*pb.Tree
-	commits map[string]*pb.Commit
+	blobs   map[string]*data_pb.Blob
+	trees   map[string]*data_pb.Tree
+	commits map[string]*data_pb.Commit
 }
 
 func (s *InMemoryObjectStoreServer) StoreObject(ctx context.Context, request *pb.StoreObjectRequest) (*pb.StoreObjectResponse, error) {

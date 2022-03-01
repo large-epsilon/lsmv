@@ -6,7 +6,8 @@ go_library(
     importpath = "lsmv/objectstore",
     visibility = ["//visibility:private"],
     deps = [
-        "//proto:objectstore",
+        "//proto/data",
+        "//proto/objectstore",
         "@org_golang_google_grpc//:go_default_library",
     ],
 )

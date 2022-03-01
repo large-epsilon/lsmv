@@ -8,21 +8,21 @@ import (
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
 
-	objectstore_pb "lsmv/proto/objectstore"
+	data_pb "lsmv/proto/data"
 )
 
 type LsmvFS struct {
-	tree *objectstore_pb.Tree
+	tree *data_pb.Tree
 	root *Dir
 }
 
-func (fs LsmvFS) setRootTree(tree *objectstore_pb.Tree) error {
+func (fs LsmvFS) setRootTree(tree *data_pb.Tree) error {
 	// TODO
 	return nil
 }
 
 func (LsmvFS) Root() (fs.Node, error) {
-    // TODO: load the root tree instead of using a special inode
+	// TODO: load the root tree instead of using a special inode
 	root_dir := Dir{
 		inode:    1,
 		mode:     os.ModeDir | 0o555,

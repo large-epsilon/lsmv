@@ -1,0 +1,30 @@
+syntax = "proto3"
+
+option go_module_path = "lsmv/proto/versioning"
+
+import "proto/data/objects.proto"
+
+// very todo, this is not a finalized api but more of a napkin diagram for testing
+
+message GetHistoryRequest {
+    // We will return all changes touching this path.
+    string path = 1;
+}
+
+message GetHistoryResponse {
+    repeated Commit commits = 1;
+}
+
+message CommitRequest {
+    Tree root = 1;
+    Commit commit = 2;
+    repeated Tree subtrees = 3;
+    repeated Blob files = 4;
+}
+
+message CommitResponse {}
+
+service versioning {
+    rpc GetHistory(GetHistoryRequest) returns (GetHistoryResponse);
+    rpc Commit(CommitRequest) returns (CommitResponse);
+}

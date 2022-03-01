@@ -11,7 +11,7 @@ import (
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
 
-	objectstore_pb "lsmv/proto/objectstore"
+	data_pb "lsmv/proto/data"
 )
 
 type Dir struct {
@@ -21,7 +21,7 @@ type Dir struct {
 	hash     string
 	inode    uint64
 	mode     iofs.FileMode
-	tree     *objectstore_pb.Tree
+	tree     *data_pb.Tree
 	loaded   bool
 }
 
@@ -35,26 +35,26 @@ func (d Dir) maybeLoad() error {
 	if d.inode != 1 {
 		return nil
 	}
-	d.tree = &objectstore_pb.Tree{
+	d.tree = &data_pb.Tree{
 		Hash: "faketree",
-		Children: []*objectstore_pb.Tree_Child{
-			{Hash: "fakefil123", Name: "fakefile", Type: objectstore_pb.Tree_Child_BLOB},
-			{Hash: "fakefil125", Name: "anotherfile", Type: objectstore_pb.Tree_Child_BLOB},
-			{Hash: "asdfasfd", Name: "banana", Type: objectstore_pb.Tree_Child_BLOB},
+		Children: []*data_pb.Tree_Child{
+			{Hash: "fakefil123", Name: "fakefile", Type: data_pb.Tree_Child_BLOB},
+			{Hash: "fakefil125", Name: "anotherfile", Type: data_pb.Tree_Child_BLOB},
+			{Hash: "asdfasfd", Name: "banana", Type: data_pb.Tree_Child_BLOB},
 		},
 	}
 	// END DUMMY DATA
 
 	for _, child := range d.tree.Children {
 		switch child.Type {
-		case objectstore_pb.Tree_Child_BLOB:
+		case data_pb.Tree_Child_BLOB:
 			(*d.files)[child.Name] = File{
 				content: &[]byte{},
 				hash:    child.Hash,
 				inode:   uint64(rand.Int63()),
 				mode:    0o444, // TODO store modes in tree protos
 			}
-		case objectstore_pb.Tree_Child_SUBTREE:
+		case data_pb.Tree_Child_SUBTREE:
 			(*d.children)[child.Name] = Dir{
 				files:    &map[string]File{},
 				children: &map[string]Dir{},

@@ -7,7 +7,7 @@ import (
 
 	"bazil.org/fuse"
 
-	objectstore_pb "lsmv/proto/objectstore"
+	data_pb "lsmv/proto/data"
 )
 
 type File struct {
@@ -26,7 +26,7 @@ func (f File) maybeLoad() error {
 	if f.loaded {
 		return nil
 	}
-	blob := objectstore_pb.Blob{
+	blob := data_pb.Blob{
 		Hash:    f.hash,
 		Content: []byte{'a', 's', 'd', 'f', '\n'},
 	}

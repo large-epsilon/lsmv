@@ -2,7 +2,7 @@ syntax = "proto3";
 
 option go_package = "lsmv/proto/objectstore";
 
-import "proto/objects.proto";
+import "proto/data/objects.proto";
 
 message StoreObjectRequest {
     oneof to_store {
