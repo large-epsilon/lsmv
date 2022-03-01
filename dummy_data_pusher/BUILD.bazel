@@ -1,0 +1,19 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "dummy_data_pusher_lib",
+    srcs = ["main.go"],
+    importpath = "lsmv/dummy_data_pusher",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//proto/data",
+        "//proto/versioning",
+        "@org_golang_google_grpc//:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "dummy_data_pusher",
+    embed = [":dummy_data_pusher_lib"],
+    visibility = ["//visibility:public"],
+)
