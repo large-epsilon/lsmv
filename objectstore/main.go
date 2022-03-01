@@ -82,7 +82,11 @@ func main() {
 	var opts []grpc.ServerOption
 
 	grpcServer := grpc.NewServer(opts...)
-	pb.RegisterObjectStoreServer(grpcServer, &InMemoryObjectStoreServer{})
+	pb.RegisterObjectStoreServer(grpcServer, &InMemoryObjectStoreServer{
+		blobs:   map[string]*data_pb.Blob{},
+		trees:   map[string]*data_pb.Tree{},
+		commits: map[string]*data_pb.Commit{},
+	})
 	log.Printf("Starting object store server on %s:%d.", *host, *port)
 	grpcServer.Serve(lis)
 }

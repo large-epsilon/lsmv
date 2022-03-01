@@ -65,7 +65,10 @@ func buildRequest() versioning_pb.PushCommitRequest {
 }
 
 func main() {
-	conn, err := grpc.Dial("localhost:7886")
+	conn, err := grpc.Dial(
+		"localhost:7886",
+		grpc.WithInsecure(),
+	)
 	if err != nil {
 		log.Fatalf(
 			"Failed to dial versioning server at localhost:7886: %v", err)

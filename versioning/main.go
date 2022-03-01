@@ -51,7 +51,7 @@ func (v *VersioningServerImpl) PushCommit(
 		)
 	}
 
-	conn, err := grpc.Dial(v.objectstoreAddress)
+	conn, err := grpc.Dial(v.objectstoreAddress, grpc.WithInsecure())
 	if err != nil {
 		log.Printf(
 			"Failed to dial objectstore server at %s: %v",
@@ -77,7 +77,7 @@ func (v *VersioningServerImpl) PullCommit(
 ) (*pb.PullCommitResponse, error) {
 	response := &pb.PullCommitResponse{}
 
-	conn, err := grpc.Dial(v.objectstoreAddress)
+	conn, err := grpc.Dial(v.objectstoreAddress, grpc.WithInsecure())
 	if err != nil {
 		log.Printf(
 			"Failed to dial objectstore server at %s: %v",
