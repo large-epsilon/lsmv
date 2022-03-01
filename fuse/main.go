@@ -22,19 +22,13 @@ func (fs LsmvFS) setRootTree(tree *objectstore_pb.Tree) error {
 }
 
 func (LsmvFS) Root() (fs.Node, error) {
+    // TODO: load the root tree instead of using a special inode
 	root_dir := Dir{
 		inode:    1,
 		mode:     os.ModeDir | 0o555,
 		files:    &map[string]File{},
 		children: &map[string]Dir{},
 	}
-	content := []byte("Hello you beautiful person!\n")
-	(*root_dir.files)["hello"] = File{
-		content: &content,
-		inode:   2,
-		mode:    0o444,
-	}
-
 	return root_dir, nil
 }
 

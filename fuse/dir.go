@@ -4,6 +4,7 @@ import (
 	"context"
 	iofs "io/fs"
 	"log"
+	"math/rand"
 	"os"
 	"syscall"
 
@@ -21,10 +22,11 @@ type Dir struct {
 	inode    uint64
 	mode     iofs.FileMode
 	tree     *objectstore_pb.Tree
+	loaded   bool
 }
 
 func (d Dir) maybeLoad() error {
-	if d.tree != nil {
+	if d.loaded {
 		return nil
 	}
 
@@ -47,20 +49,22 @@ func (d Dir) maybeLoad() error {
 		switch child.Type {
 		case objectstore_pb.Tree_Child_BLOB:
 			(*d.files)[child.Name] = File{
-				hash:  child.Hash,
-				inode: 4,     // TODO: unique inodes (if necessary)
-				mode:  0o444, // TODO store modes in tree protos
+				content: &[]byte{},
+				hash:    child.Hash,
+				inode:   uint64(rand.Int63()),
+				mode:    0o444, // TODO store modes in tree protos
 			}
 		case objectstore_pb.Tree_Child_SUBTREE:
 			(*d.children)[child.Name] = Dir{
 				files:    &map[string]File{},
 				children: &map[string]Dir{},
 				hash:     child.Hash,
-				inode:    5,
+				inode:    uint64(rand.Int63()),
 				mode:     os.ModeDir | 0o555, // TODO store modes in tree protos
 			}
 		}
 	}
+	d.loaded = true
 	return nil
 }
 
