@@ -56,7 +56,7 @@ func buildRequest() versioning_pb.PushCommitRequest {
 					"This is anotherfile. It's another file.\n"),
 			},
 			{
-				Hash: "ccc",
+				Hash: "cccc",
 				Content: []byte(
 					"This is banana. It's not actually a banana.\n"),
 			},

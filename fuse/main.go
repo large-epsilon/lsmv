@@ -16,24 +16,6 @@ func main() {
 	mountLocation := flag.Arg(0)
 
 	// TODO: smarter controller construction
-	filesystem := LsmvFS{
-		repoName: "repo",
-	}
-	controller := Controller{
-		filesystem:               &filesystem,
-		currentHead:              "asdffdsa",
-		versioningServerAddress:  "localhost:7886",
-		objectstoreServerAddress: "localhost:7887",
-	}
-	err := filesystem.setRootTree(controller.currentHead, &controller)
-	if err != nil {
-		log.Fatalf("Failed to initialize filesystem: %v", err)
-	}
-	control, err := constructControlDir(&controller)
-	if err != nil {
-		log.Fatalf("Failed to construct control directory: %v", err)
-	}
-	filesystem.control = &control
 
 	conn, err := fuse.Mount(
 		mountLocation, fuse.FSName("lsmv"), fuse.Subtype("lsmvfs"))
@@ -43,7 +25,12 @@ func main() {
 	defer conn.Close()
 	defer fuse.Unmount(mountLocation)
 
-	err = fs.Serve(conn, filesystem)
+	srv := fs.New(conn, nil)
+
+	filesystem, err := NewLsmvFS("repo")
+
+	filesystem.server = srv
+	err = srv.Serve(filesystem)
 	if err != nil {
 		log.Fatal(err)
 	}

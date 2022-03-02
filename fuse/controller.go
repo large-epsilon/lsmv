@@ -20,6 +20,7 @@ type RootDir struct {
 	control  *ControlDir
 	repoRoot *Dir
 	repoName string
+	fuse     *fs.Server
 }
 
 func (RootDir) Attr(ctx context.Context, attr *fuse.Attr) error {
@@ -31,43 +32,75 @@ func (RootDir) Attr(ctx context.Context, attr *fuse.Attr) error {
 func (r RootDir) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	if name == ".control" {
 		return *r.control, nil
-	} else if name == r.repoName {
+	} else if name == r.repoName && r.repoRoot != nil {
 		return *r.repoRoot, nil
 	}
 	return nil, syscall.ENOENT
 }
 
 func (r RootDir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
-	return []fuse.Dirent{
-		{Inode: 2, Name: ".control", Type: fuse.DT_Dir},
-		{Inode: 3, Name: r.repoName, Type: fuse.DT_Dir},
-	}, nil
+	response := []fuse.Dirent{{Inode: 2, Name: ".control", Type: fuse.DT_Dir}}
+	if r.repoRoot != nil {
+		response = append(
+			response,
+			fuse.Dirent{Inode: 3, Name: r.repoName, Type: fuse.DT_Dir},
+		)
+	}
+	return response, nil
 }
 
 type LsmvFS struct {
 	control  *ControlDir
-	repoRoot *Dir
+	rootNode *RootDir
+	server   *fs.Server
 	repoName string
 }
 
-func (fs *LsmvFS) setRootTree(hash string, controller *Controller) error {
-	fs.repoRoot = &Dir{
-		inode:      3,
-		hash:       hash,
-		mode:       os.ModeDir | 0o555,
-		files:      &map[string]File{},
-		children:   &map[string]Dir{},
-		controller: controller,
+func NewLsmvFS(name string) (*LsmvFS, error) {
+	fs := LsmvFS{
+		repoName: name,
 	}
+	// TODO: take these values as flags, cache currentHead
+	controller := Controller{
+		filesystem:               &fs,
+		currentHead:              "asdffdsa",
+		versioningServerAddress:  "localhost:7886",
+		objectstoreServerAddress: "localhost:7887",
+	}
+	control, err := constructControlDir(&controller)
+	if err != nil {
+		return nil, err
+	}
+	fs.control = &control
+	fs.rootNode = &RootDir{
+		repoName: name,
+		control:  &control,
+	}
+	err = fs.setRootTree(controller.currentHead, &controller)
+	if err != nil {
+		return nil, err
+	}
+	return &fs, nil
+}
+
+func (fs *LsmvFS) setRootTree(hash string, controller *Controller) error {
+	if fs.rootNode.repoRoot == nil {
+		fs.rootNode.repoRoot = &Dir{
+			inode:      3,
+			mode:       os.ModeDir | 0o555,
+			controller: controller,
+		}
+	}
+	fs.rootNode.repoRoot.files = &map[string]File{}
+	fs.rootNode.repoRoot.children = &map[string]Dir{}
+	fs.rootNode.repoRoot.hash = hash
+	fs.rootNode.repoRoot.loaded = false
+
 	return nil
 }
 
 func (fs LsmvFS) Root() (fs.Node, error) {
-	return RootDir{
-		control:  fs.control,
-		repoName: fs.repoName,
-		repoRoot: fs.repoRoot,
-	}, nil
+	return fs.rootNode, nil
 }
 
 // TODO: swap this to disk somewhere

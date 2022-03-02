@@ -86,7 +86,6 @@ func (f headFile) Write(
 	commitHash := strings.TrimSpace(string(req.Data))
 	if len(commitHash) == 0 {
 		// Ignore empty writes, which is a thing echo likes to do.
-		log.Printf("skipping zero write")
 		resp.Size = len((*f.controller).currentHead)
 		return nil
 	}
