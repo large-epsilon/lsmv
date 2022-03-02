@@ -43,29 +43,32 @@ func (s *InMemoryObjectStoreServer) GetObject(ctx context.Context, request *pb.G
 	if err != nil {
 		return nil, err
 	}
+	if resp == nil {
+		return nil, fmt.Errorf("No object was found for hash '%s'", request.Hash)
+	}
 	if len(resp.Responses) != 1 {
-		return nil, fmt.Errorf("Incorrect number of responses for a single hash: got %d", len(resp.Responses))
+		return nil, fmt.Errorf("Incorrect number of responses for hash %s: got %d", request.Hash, len(resp.Responses))
 	}
 	return resp.Responses[0], nil
 }
 
 func (s *InMemoryObjectStoreServer) BatchedGetObject(ctx context.Context, request *pb.BatchedGetObjectRequest) (*pb.BatchedGetObjectResponse, error) {
-	var response *pb.BatchedGetObjectResponse
+	responses := []*pb.GetObjectResponse{}
 	for _, req := range request.Requests {
 		tree, ok := s.trees[req.Hash]
 		if ok {
-			response.Responses = append(response.Responses, &pb.GetObjectResponse{ReturnedObject: &pb.GetObjectResponse_Tree{tree}})
+			responses = append(responses, &pb.GetObjectResponse{ReturnedObject: &pb.GetObjectResponse_Tree{tree}})
 		}
 		blob, ok := s.blobs[req.Hash]
 		if ok {
-			response.Responses = append(response.Responses, &pb.GetObjectResponse{ReturnedObject: &pb.GetObjectResponse_Blob{blob}})
+			responses = append(responses, &pb.GetObjectResponse{ReturnedObject: &pb.GetObjectResponse_Blob{blob}})
 		}
 		commit, ok := s.commits[req.Hash]
 		if ok {
-			response.Responses = append(response.Responses, &pb.GetObjectResponse{ReturnedObject: &pb.GetObjectResponse_Commit{commit}})
+			responses = append(responses, &pb.GetObjectResponse{ReturnedObject: &pb.GetObjectResponse_Commit{commit}})
 		}
 	}
-	return response, nil
+	return &pb.BatchedGetObjectResponse{Responses: responses}, nil
 }
 
 func main() {

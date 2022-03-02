@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	iofs "io/fs"
+	"log"
 	"os"
+	"strings"
 	"syscall"
 
 	"bazil.org/fuse"
@@ -81,10 +83,19 @@ func (f headFile) ReadAll(ctx context.Context) ([]byte, error) {
 func (f headFile) Write(
 	ctx context.Context, req *fuse.WriteRequest, resp *fuse.WriteResponse,
 ) error {
-	commitHash := string(req.Data)
+	commitHash := strings.TrimSpace(string(req.Data))
+	if len(commitHash) == 0 {
+		// Ignore empty writes, which is a thing echo likes to do.
+		log.Printf("skipping zero write")
+		resp.Size = len((*f.controller).currentHead)
+		return nil
+	}
+
 	err := f.controller.setHead(commitHash)
 	if err != nil {
+		log.Printf("Failed writing `head`: %v", err)
 		return err
 	}
+	resp.Size = len(commitHash)
 	return nil
 }

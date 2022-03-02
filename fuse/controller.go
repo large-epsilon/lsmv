@@ -155,5 +155,7 @@ func (c *Controller) setHead(hash string) error {
 		log.Printf("Failed to set root tree: %v", err)
 		return err
 	}
+
+	c.currentHead = hash
 	return nil
 }

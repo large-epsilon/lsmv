@@ -20,9 +20,10 @@ func main() {
 		repoName: "repo",
 	}
 	controller := Controller{
-		filesystem:              &filesystem,
-		currentHead:             "asdffdsa",
-		versioningServerAddress: "localhost:7886",
+		filesystem:               &filesystem,
+		currentHead:              "asdffdsa",
+		versioningServerAddress:  "localhost:7886",
+		objectstoreServerAddress: "localhost:7887",
 	}
 	err := filesystem.setRootTree(controller.currentHead, &controller)
 	if err != nil {
