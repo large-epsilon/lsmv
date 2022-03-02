@@ -56,9 +56,10 @@ type LsmvFS struct {
 	repoName string
 }
 
-func NewLsmvFS(name string) (*LsmvFS, error) {
+func NewLsmvFS(name string, server *fs.Server) (*LsmvFS, error) {
 	fs := LsmvFS{
 		repoName: name,
+		server:   server,
 	}
 	// TODO: take these values as flags, cache currentHead
 	controller := Controller{

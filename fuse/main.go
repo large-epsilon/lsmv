@@ -15,8 +15,6 @@ func main() {
 	}
 	mountLocation := flag.Arg(0)
 
-	// TODO: smarter controller construction
-
 	conn, err := fuse.Mount(
 		mountLocation, fuse.FSName("lsmv"), fuse.Subtype("lsmvfs"))
 	if err != nil {
@@ -27,9 +25,11 @@ func main() {
 
 	srv := fs.New(conn, nil)
 
-	filesystem, err := NewLsmvFS("repo")
+	filesystem, err := NewLsmvFS("repo", srv)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	filesystem.server = srv
 	err = srv.Serve(filesystem)
 	if err != nil {
 		log.Fatal(err)
