@@ -1,13 +1,8 @@
-package main
+package in_memory_store
 
 import (
 	"context"
-	"flag"
 	"fmt"
-	"log"
-	"net"
-
-	"google.golang.org/grpc"
 
 	data_pb "lsmv/proto/data"
 	pb "lsmv/proto/objectstore"
@@ -17,6 +12,14 @@ type InMemoryObjectStoreServer struct {
 	blobs   map[string]*data_pb.Blob
 	trees   map[string]*data_pb.Tree
 	commits map[string]*data_pb.Commit
+}
+
+func New() *InMemoryObjectStoreServer {
+    return &InMemoryObjectStoreServer{
+		blobs:   map[string]*data_pb.Blob{},
+		trees:   map[string]*data_pb.Tree{},
+		commits: map[string]*data_pb.Commit{},
+	}
 }
 
 func (s *InMemoryObjectStoreServer) StoreObject(ctx context.Context, request *pb.StoreObjectRequest) (*pb.StoreObjectResponse, error) {
@@ -69,27 +72,4 @@ func (s *InMemoryObjectStoreServer) BatchedGetObject(ctx context.Context, reques
 		}
 	}
 	return &pb.BatchedGetObjectResponse{Responses: responses}, nil
-}
-
-func main() {
-	var port = flag.Int("port", 7887, "Port for the objectstore server to listen on.")
-	var host = flag.String("host", "localhost", "Hostname for this server.")
-
-	flag.Parse()
-
-	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%d", *host, *port))
-	if err != nil {
-		log.Fatalf("Failed to listen: %v", err)
-	}
-
-	var opts []grpc.ServerOption
-
-	grpcServer := grpc.NewServer(opts...)
-	pb.RegisterObjectStoreServer(grpcServer, &InMemoryObjectStoreServer{
-		blobs:   map[string]*data_pb.Blob{},
-		trees:   map[string]*data_pb.Tree{},
-		commits: map[string]*data_pb.Commit{},
-	})
-	log.Printf("Starting object store server on %s:%d.", *host, *port)
-	grpcServer.Serve(lis)
 }

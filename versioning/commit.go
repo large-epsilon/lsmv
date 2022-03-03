@@ -1,21 +1,15 @@
-package main
+package versioning
 
 import (
-	"context"
-	"flag"
-	"fmt"
-	"log"
-	"net"
+    "context"
+    "log"
+    "fmt"
 
-	"google.golang.org/grpc"
+    "google.golang.org/grpc"
 
-	objectstore_pb "lsmv/proto/objectstore"
-	pb "lsmv/proto/versioning"
+    pb "lsmv/proto/versioning"
+    objectstore_pb "lsmv/proto/objectstore"
 )
-
-type VersioningServerImpl struct {
-	objectstoreAddress string
-}
 
 func (v *VersioningServerImpl) PushCommit(
 	ctx context.Context,
@@ -51,11 +45,11 @@ func (v *VersioningServerImpl) PushCommit(
 		)
 	}
 
-	conn, err := grpc.Dial(v.objectstoreAddress, grpc.WithInsecure())
+	conn, err := grpc.Dial(v.ObjectstoreAddress, grpc.WithInsecure())
 	if err != nil {
 		log.Printf(
 			"Failed to dial objectstore server at %s: %v",
-			v.objectstoreAddress, err)
+			v.ObjectstoreAddress, err)
 		return nil, err
 	}
 	defer conn.Close()
@@ -77,11 +71,11 @@ func (v *VersioningServerImpl) PullCommit(
 ) (*pb.PullCommitResponse, error) {
 	response := &pb.PullCommitResponse{}
 
-	conn, err := grpc.Dial(v.objectstoreAddress, grpc.WithInsecure())
+	conn, err := grpc.Dial(v.ObjectstoreAddress, grpc.WithInsecure())
 	if err != nil {
 		log.Printf(
 			"Failed to dial objectstore server at %s: %v",
-			v.objectstoreAddress, err)
+			v.ObjectstoreAddress, err)
 		return nil, err
 	}
 	defer conn.Close()
@@ -121,36 +115,4 @@ func (v *VersioningServerImpl) PullCommit(
 	}
 
 	return response, nil
-}
-
-func main() {
-	var port = flag.Int(
-		"port",
-		7886,
-		"Port for the objectstore server to listen on.",
-	)
-	var host = flag.String("host", "localhost", "Hostname for this server.")
-	var objectstoreAddress = flag.String(
-		"objectstore_address",
-		"localhost:7887",
-		"host:port address of the objectstore service to use.",
-	)
-
-	flag.Parse()
-
-	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%d", *host, *port))
-	if err != nil {
-		log.Fatalf("Failed to listen: %v", err)
-	}
-
-	var opts []grpc.ServerOption
-	grpcServer := grpc.NewServer(opts...)
-	pb.RegisterVersioningServer(grpcServer, &VersioningServerImpl{
-		objectstoreAddress: *objectstoreAddress,
-	})
-	log.Printf("Starting versioning server on %s:%d.", *host, *port)
-	err = grpcServer.Serve(lis)
-	if err != nil {
-		log.Fatalf("Failed to start server: %v", err)
-	}
 }

@@ -1,0 +1,12 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "in_memory_store",
+    srcs = ["in_memory_store.go"],
+    importpath = "lsmv/objectstore/in_memory_store",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//proto/data",
+        "//proto/objectstore",
+    ],
+)
