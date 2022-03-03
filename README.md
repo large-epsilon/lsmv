@@ -97,11 +97,11 @@ might work.
 For now, you have to start all the servers manually. From the root of this
 repository, run:
 ```
-> bazel run //objectstore:objectstore
+> bazel run //objectstore/bin:bin
 ```
 Then in another terminal, run:
 ```
-> bazel run //versioning:versioning
+> bazel run //versioning/bin:bin
 ```
 And finally, in a third terminal, run:
 ```
@@ -110,7 +110,7 @@ And finally, in a third terminal, run:
 With `$MOUNTLOCATION` replaced with the path to an existing, empty directory
 where the filesystem will be mounted.
 
-Then, you'll want to add some data to the server. In a fourth server:
+Then, you'll want to add some data to the server. In a fourth terminal:
 ```
 > bazel run //dummy_data_pusher:dummy_data_pusher
 ```
@@ -118,5 +118,6 @@ Then, you'll want to add some data to the server. In a fourth server:
 Finally, you need to point the repository at the commit the dummy pusher just
 loaded. Run:
 ```
-echo 'fakecommit' > $MOUNTPOINT/.control/head
+echo 'fakecommit' > $MOUNTLOCATION/.control/head
 ```
+Et viola! There should be a few files in `$MOUNTLOCATION/repo/`.

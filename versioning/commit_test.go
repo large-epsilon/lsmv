@@ -138,5 +138,4 @@ func TestCommit(t *testing.T) {
 	if !reflect.DeepEqual(response, expectedResponse) {
 		t.Fatalf("Returned response was different from expected response")
 	}
-
 }
