@@ -1,18 +1,26 @@
 package versioning
 
 import (
+	"context"
 	"net"
+	"reflect"
 	"testing"
 	"time"
 
+	"google.golang.org/grpc"
+
+	"lsmv/objectstore/in_memory_store"
 	data_pb "lsmv/proto/data"
+	objectstore_pb "lsmv/proto/objectstore"
 	pb "lsmv/proto/versioning"
 )
+
+var now = uint64(time.Now().Unix())
 
 func buildRequest() pb.PushCommitRequest {
 	return pb.PushCommitRequest{
 		Commit: &data_pb.Commit{
-			Timestamp:      uint64(time.Now().Unix()),
+			Timestamp:      now,
 			Hash:           "fakecommit",
 			Tree:           "faketree",
 			Author:         "Raine Serrano",
@@ -61,23 +69,74 @@ func buildRequest() pb.PushCommitRequest {
 }
 
 func TestCommit(t *testing.T) {
+	const objSock = "/tmp/lsmv_versioning_test_TestPushCommit_objectstore.sock"
 	objectstoreListener, err := net.Listen(
-		"unix", "/tmp/versioning_test_TestPushCommit_objectstore.sock")
+		"unix", objSock)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer objectstoreListener.Close()
+	var opts []grpc.ServerOption
+
+	grpcServer := grpc.NewServer(opts...)
+	objectstore_pb.RegisterObjectStoreServer(grpcServer, in_memory_store.New())
+	go func() {
+		grpcServer.Serve(objectstoreListener)
+	}()
+	defer grpcServer.Stop()
 
 	server := &VersioningServerImpl{
-		objectstoreAddress: "unix:///tmp/versioning_test_TestPushCommit.sock",
+		ObjectstoreAddress: "unix://" + objSock,
 	}
 
-	_, err = versioningClient.PushCommit(
-		context.background(),
+	request := buildRequest()
+	_, err = server.PushCommit(
+		context.Background(),
 		&request,
 	)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	pullRequest := pb.PullCommitRequest{Hash: "fakecommit"}
+	response, err := server.PullCommit(context.Background(), &pullRequest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectedResponse := &pb.PullCommitResponse{
+		Commit: &data_pb.Commit{
+			Timestamp:      now,
+			Hash:           "fakecommit",
+			Tree:           "faketree",
+			Author:         "Raine Serrano",
+			AuthorEmail:    "raine.h.serrano@gmail.com",
+			Committer:      "Raine Serrano",
+			CommitterEmail: "raine.h.serrano@gmail.com",
+			Diff:           "[pretend this is a diff]",
+		},
+		Root: &data_pb.Tree{
+			Hash: "faketree",
+			Children: []*data_pb.Tree_Child{
+				{
+					Hash: "aaaa",
+					Name: "fakefile",
+					Type: data_pb.Tree_Child_BLOB,
+				},
+				{
+					Hash: "bbbb",
+					Name: "anotherfile",
+					Type: data_pb.Tree_Child_BLOB,
+				},
+				{
+					Hash: "cccc",
+					Name: "banana",
+					Type: data_pb.Tree_Child_BLOB,
+				},
+			},
+		},
+	}
+	if !reflect.DeepEqual(response, expectedResponse) {
+		t.Fatalf("Returned response was different from expected response")
 	}
 
 }

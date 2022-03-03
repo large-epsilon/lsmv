@@ -20,7 +20,9 @@ go_test(
     srcs = ["commit_test.go"],
     embed = [":versioning"],
     deps = [
+        "//objectstore/in_memory_store",
         "//proto/data",
+        "//proto/objectstore",
         "//proto/versioning",
     ],
 )
